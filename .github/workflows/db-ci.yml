@@ -1,0 +1,44 @@
+name: DB CI (Supabase verify)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  verify-migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Show versions (debug)
+        run: |
+          supabase --version
+          docker --version || true
+          docker info || true
+
+      - name: Ensure supabase exists (skip init if present)
+        run: |
+          if [ -f supabase/config.toml ]; then
+            echo "config exists, skipping init"
+          else
+            supabase init
+          fi
+
+      # 新規ローカルDBを起動し、全migrationを適用
+      - name: Start local DB & apply migrations
+        run: supabase db start
+
+      # スキーマLint（不整合があればCI失敗）
+      - name: Lint database schema
+        run: supabase db lint --level error
+
+      # pgTAP テストを実行（supabase/tests/*.sql）
+      - name: Run DB tests (pgTAP)
+        run: supabase test db

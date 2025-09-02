@@ -1,0 +1,38 @@
+name: DB Apply (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Target environment"
+        type: choice
+        required: true
+        options: [staging, production]
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Show Supabase CLI
+        run: supabase --version
+
+      - name: Pick DB URL from secrets
+        id: pick
+        run: |
+          if [ "${{ github.event.inputs.target }}" = "staging" ]; then
+            echo "DB_URL=${{ secrets.SUPABASE_DB_URL_STG }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "DB_URL=${{ secrets.SUPABASE_DB_URL_PROD }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # まず dry-run で差分だけ確認（安全策）
+      - name: Dry-run (preview)
+        run: supabase db push --dry-run --db-url "${{ steps.pick.outputs.DB_URL }}"
+
+      # 手動承認の上での実適用にしたい場合は、Environment保護を使うとより安全
+      - name: Apply migrations
+        run: supabase db push --db-url "${{ steps.pick.outputs.DB_URL }}"
