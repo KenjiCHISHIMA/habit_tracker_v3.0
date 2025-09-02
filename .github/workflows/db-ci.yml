@@ -1,25 +1,39 @@
 name: DB CI (Supabase verify)
 
 on:
+  pull_request:
   push:
     branches: [ main ]
-  pull_request:
 
 jobs:
   verify-migrations:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Supabase init
-        run: supabase init
+
+      - name: Show versions (debug)
+        run: |
+          supabase --version
+          docker --version || true
+          docker info || true
+
+      - name: Ensure supabase exists (skip init if present)
+        run: |
+          if [ -f supabase/config.toml ]; then
+            echo "config exists, skipping init"
+          else
+            supabase init
+          fi
+
       - name: Start local DB & apply migrations
         run: supabase db start
+
       - name: Lint database schema
         run: supabase db lint --level error
-      # - name: Run DB tests (pgTAP)
-      #   run: supabase test db
