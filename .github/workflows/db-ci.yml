@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [ main ]
+  workflow_dispatch:  # ← これで手動起動も可能に
 
 jobs:
   verify-migrations:
@@ -31,14 +32,11 @@ jobs:
             supabase init
           fi
 
-      # 新規ローカルDBを起動し、全migrationを適用
       - name: Start local DB & apply migrations
         run: supabase db start
 
-      # スキーマLint（不整合があればCI失敗）
       - name: Lint database schema
         run: supabase db lint --level error
 
-      # pgTAP テストを実行（supabase/tests/*.sql）
       - name: Run DB tests (pgTAP)
         run: supabase test db
