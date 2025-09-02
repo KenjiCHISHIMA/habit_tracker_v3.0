@@ -1,0 +1,15 @@
+# Node/Next
+node_modules/
+.next/
+out/
+
+# Env
+.env
+.env.local
+
+# Supabase
+supabase/.temp/
+
+# OS/IDE
+.DS_Store
+.vscode/
